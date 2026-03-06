@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="google-site-verification" content="v7koD54-JpANjYbZKCN46QWnVK7Q3a7sSdQnCcAVczo" />
+    <title>MFD Store • Vendor Manager</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-dark: #2d3748;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--primary-gradient);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(102, 126, 234, 0.25);
+        }
+        .glitter-text {
+            background: linear-gradient(to right, #9D50BB, #FF69B4, #6E48AA, #9D50BB);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            background-size: 300% auto;
+            animation: shine 4s linear infinite;
+            font-weight: 800;
+        }        @keyframes shine { to { background-position: 300% center; } }
+        .btn-glitter {
+            background: linear-gradient(45deg, #9D50BB, #6E48AA, #FF69B4, #764ba2);
+            background-size: 300% 300%;
+            animation: gradientMove 4s ease infinite;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(110, 72, 170, 0.4);
+            border: none;
+        }
+        .btn-glitter:hover { filter: brightness(1.2); transform: translateY(-3px); }
+        @keyframes gradientMove { 0% {background-position: 0% 50%;} 50% {background-position: 100% 50%;} 100% {background-position: 0% 50%;} }
+        
+        .hidden-section { display: none !important; }
+        
+        /* Tables */
+        .table-container { overflow-x: auto; border-radius: 15px; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.1); background: rgba(255,255,255,0.6); margin-top: 1rem; }
+        .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1200px; font-size: 0.75rem; }
+        .custom-table th { background: var(--primary-gradient); padding: 12px 8px; text-align: left; font-weight: 700; color: white; position: sticky; top: 0; z-index: 10; }
+        .custom-table td { padding: 10px 8px; border-bottom: 1px solid #edf2f7; background: rgba(255,255,255,0.5); vertical-align: middle; }
+        .custom-table tr:hover td { background: rgba(255,255,255,0.9); }
+        
+        /* Badges */
+        .badge { padding: 4px 8px; border-radius: 6px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
+        .badge-active { background: #c6f6d5; color: #22543d; }
+        .badge-blocked { background: #fed7d7; color: #822727; }
+        .badge-pending { background: #feebc8; color: #744210; }
+        .badge-paid { background: #9ae6b4; color: #22543d; }
+        .badge-vendor { background: #e9d8fd; color: #553c9a; }
+
+        .unique-code { font-family: monospace; background: rgba(102, 126, 234, 0.1); padding: 2px 6px; border-radius: 4px; cursor: pointer; border: 1px solid rgba(102, 126, 234, 0.2); }
+        
+        /* Chat */
+        .chat-box { height: 400px; overflow-y: auto; background: rgba(255,255,255,0.5); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .msg-bubble { max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 0.85rem; }
+        .msg-me { align-self: flex-end; background: #667eea; color: white; border-bottom-right-radius: 2px; }
+        .msg-other { align-self: flex-start; background: white; color: #333; border-bottom-left-radius: 2px; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 12px 20px; border-radius: 10px; color: white; z-index: 1000; animation: slideIn 0.3s ease; }
+        .toast.success { background: #38a169; }
+        .toast.error { background: #e53e3e; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Loader */
+        .loader { border: 4px solid rgba(255,255,255,0.3); border-left-color: #9D50BB; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head><body class="p-0 md:p-4">
+
+    <!-- AUDIO -->
+    <audio id="snd-click" src="https://assets.mixkit.co/sfx/preview/mixkit-modern-technology-select-3124.mp3"></audio>
+    <audio id="snd-success" src="https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3"></audio>
+    <audio id="snd-error" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+    <audio id="snd-msg" src="https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3"></audio>
+
+    <!-- TOAST -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+    <!-- NAVBAR -->
+    <nav class="glass-panel sticky top-0 z-50 m-0 md:m-4 p-3 flex justify-between items-center shadow-lg flex-wrap gap-3">
+        <div class="text-xl font-bold glitter-text cursor-pointer flex items-center gap-2" onclick="navTo('dashboard')">
+            <i class="fas fa-store"></i> MFD VENDOR MANAGER
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="navTo('chat')" class="p-2 hover:bg-white/40 rounded-full relative"><i class="fas fa-comments text-purple-600"></i><span id="chat-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full hidden">!</span></button>
+            
+            <div id="auth-nav">
+                <button onclick="navTo('login')" class="px-4 py-2 rounded-xl bg-white/60 text-purple-600 font-bold text-sm">Login</button>
+                <button onclick="navTo('register')" class="px-4 py-2 rounded-xl btn-glitter ml-2 text-sm">Register Vendor</button>
+            </div>
+            
+            <div id="user-nav" class="hidden-section flex items-center gap-3">
+                <div class="text-right hidden md:block">
+                    <div id="nav-username" class="font-bold text-sm truncate max-w-[100px]"></div>
+                    <div id="nav-venid" class="text-[10px] text-purple-600 font-mono"></div>
+                </div>
+                <button onclick="navTo('dashboard')" class="px-3 py-2 bg-purple-500 text-white rounded-xl text-sm"><i class="fas fa-tachometer-alt"></i></button>
+                <button onclick="logout()" class="px-3 py-2 bg-red-500 text-white rounded-xl text-sm"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="container mx-auto p-2 md:p-4 pb-20">
+
+        <!-- 1. AUTH -->
+        <section id="view-login" class="hidden-section max-w-md mx-auto mt-10">
+            <div class="glass-panel p-8">
+                <h2 class="text-2xl font-bold text-center mb-6 glitter-text">Vendor Login</h2>
+                <input type="email" id="login-email" placeholder="Email" class="w-full mb-3 p-2 rounded border">
+                <input type="password" id="login-pass" placeholder="Password" class="w-full mb-4 p-2 rounded border">
+                <button onclick="doLogin()" class="btn-glitter w-full py-3 rounded-xl">LOGIN</button>
+                <div class="relative my-4"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-300"></div></div><div class="relative flex justify-center text-xs"><span class="px-2 bg-transparent text-gray-500">ATAU</span></div></div>
+                <button onclick="doGoogleSignIn()" class="w-full py-2 rounded-xl font-bold shadow flex items-center justify-center gap-2 bg-white border border-gray-300"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Google Login</button>
+                <p class="text-center mt-4 text-sm">Belum ada akaun penjual? <span class="text-purple-600 font-bold cursor-pointer" onclick="navTo('register')">Daftar Vendor</span></p>
+            </div>
+        </section>
+        <section id="view-register" class="hidden-section max-w-md mx-auto mt-10">
+            <div class="glass-panel p-8">
+                <h2 class="text-2xl font-bold text-center mb-6 glitter-text">Daftar Vendor Baharu</h2>
+                <input type="text" id="reg-name" placeholder="Nama Penjual / Owner" class="w-full mb-3 p-2 rounded border">
+                <input type="text" id="reg-business" placeholder="Nama Bisnes / Kedai" class="w-full mb-3 p-2 rounded border">
+                <input type="tel" id="reg-phone" placeholder="No Telefon" class="w-full mb-3 p-2 rounded border">
+                <input type="email" id="reg-email" placeholder="Email" class="w-full mb-3 p-2 rounded border">
+                <input type="password" id="reg-pass" placeholder="Password" class="w-full mb-4 p-2 rounded border">
+                <button onclick="doRegister()" class="btn-glitter w-full py-3 rounded-xl">DAFTAR SEKARANG</button>
+                <p class="text-center mt-4 text-sm">Sudah ada akaun? <span class="text-purple-600 font-bold cursor-pointer" onclick="navTo('login')">Login</span></p>
+            </div>
+        </section>
+
+        <!-- 2. DASHBOARD OVERVIEW -->
+        <section id="view-dashboard" class="hidden-section">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600" id="stat-sales">RM 0.00</div>
+                    <div class="text-[10px] text-gray-600">💰 Total Sales</div>
+                </div>
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-orange-600" id="stat-pending">0</div>
+                    <div class="text-[10px] text-gray-600">⏳ Pending Orders</div>
+                </div>
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600" id="stat-income">RM 0.00</div>
+                    <div class="text-[10px] text-gray-600">💵 Net Income (After MFD Fee)</div>
+                </div>
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="stat-products">0</div>
+                    <div class="text-[10px] text-gray-600">📦 Active Products</div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 mb-4 overflow-x-auto">
+                <button onclick="showTab('tab-products')" class="px-4 py-2 bg-white rounded-xl text-purple-600 font-bold text-sm shadow whitespace-nowrap">📦 Produk Saya</button>
+                <button onclick="showTab('tab-orders')" class="px-4 py-2 bg-white rounded-xl text-purple-600 font-bold text-sm shadow whitespace-nowrap">📋 Pesanan Masuk</button>
+                <button onclick="showTab('tab-finance')" class="px-4 py-2 bg-white rounded-xl text-purple-600 font-bold text-sm shadow whitespace-nowrap">💰 Kewangan & Gaji</button>
+                <button onclick="showTab('tab-profile')" class="px-4 py-2 bg-white rounded-xl text-purple-600 font-bold text-sm shadow whitespace-nowrap">👤 Profil Kedai</button>
+                <button onclick="showTab('tab-admin')" id="btn-admin" class="px-4 py-2 bg-white rounded-xl text-red-600 font-bold text-sm shadow whitespace-nowrap hidden">👑 Admin Panel</button>
+            </div>
+
+            <!-- TAB: PRODUCTS -->
+            <div id="tab-products" class="glass-panel p-6 mb-6">
+                <h3 class="font-bold text-purple-700 mb-4">➕ Tambah Produk Baharu</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-white/50 p-4 rounded-xl">
+                    <div class="md:col-span-2">
+                        <label class="text-xs font-bold">Gambar Produk (URL atau Upload)</label>                        <div class="flex gap-2">
+                            <input type="url" id="prod-img-url" placeholder="Paste URL Gambar (Disyorkan)" class="flex-1 p-2 rounded border text-xs">
+                            <input type="file" id="prod-img-file" accept="image/*" class="flex-1 text-xs p-1" onchange="handleImageUpload(this)">
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-1">*Jika upload, gambar akan ditukar ke kod (Base64) dan simpan dalam Database.</p>
+                        <img id="prod-preview" class="w-20 h-20 object-cover rounded mt-2 hidden border">
+                    </div>
+                    <input type="text" id="prod-name" placeholder="Nama Item *" class="p-2 rounded border">
+                    <input type="number" id="prod-price" placeholder="Harga Jualan (RM) *" step="0.01" class="p-2 rounded border">
+                    <input type="text" id="prod-variation" placeholder="Variasi (Saiz/Warna)" class="p-2 rounded border">
+                    <input type="text" id="prod-country" placeholder="Negara Asal" class="p-2 rounded border">
+                    <textarea id="prod-desc" placeholder="Deskripsi" class="md:col-span-2 p-2 rounded border" rows="2"></textarea>
+                    <select id="prod-status" class="p-2 rounded border">
+                        <option value="Public">✅ Public</option>
+                        <option value="Private">🔒 Private</option>
+                        <option value="Out of Stock">❌ Out of Stock</option>
+                    </select>
+                    <input type="text" id="prod-uc" readonly class="bg-gray-100 text-xs font-mono text-gray-500 p-2 rounded border" placeholder="Kode Unik (Auto)">
+                </div>
+                <button onclick="addProduct()" class="btn-glitter px-6 py-2 rounded-lg shadow-lg"><i class="fas fa-plus"></i> LANJAR PRODUK</button>
+
+                <h3 class="font-bold text-purple-700 mt-8 mb-4">📋 Senarai Produk Dilancarkan</h3>
+                <div class="table-container">
+                    <table class="custom-table">
+                        <thead><tr><th>Gambar</th><th>Nama Item</th><th>Kode Unik</th><th>Harga</th><th>Status</th><th>Sold</th><th>Revenue</th><th>Tindakan</th></tr></thead>
+                        <tbody id="vendor-prod-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: ORDERS -->
+            <div id="tab-orders" class="hidden-section glass-panel p-6 mb-6">
+                <h3 class="font-bold text-purple-700 mb-4">📦 Pesanan Masuk (Perlu Tindakan)</h3>
+                <div class="table-container">
+                    <table class="custom-table">
+                        <thead><tr><th>UAC</th><th>Customer</th><th>Item</th><th>Kode Unik</th><th>Total</th><th>Payment</th><th>Status</th><th>Tracking</th><th>Tindakan</th></tr></thead>
+                        <tbody id="vendor-order-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: FINANCE -->
+            <div id="tab-finance" class="hidden-section glass-panel p-6 mb-6">
+                <h3 class="font-bold text-purple-700 mb-4">💰 Kewangan & Gaji Penjual</h3>
+                <div class="grid md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white/60 p-4 rounded-xl">
+                        <h4 class="font-bold text-sm mb-2">Maklumat Pembayaran Gaji</h4>
+                        <input type="text" id="fin-holder" placeholder="Nama Pemegang Akaun" class="w-full mb-2 p-2 rounded border text-sm">
+                        <input type="text" id="fin-bank" placeholder="Nama Bank / TNG / DuitNow" class="w-full mb-2 p-2 rounded border text-sm">
+                        <input type="text" id="fin-acc" placeholder="Nombor Akaun / No Telefon" class="w-full mb-2 p-2 rounded border text-sm">                        <input type="url" id="fin-qr" placeholder="URL Gambar QR Code (Optional)" class="w-full mb-2 p-2 rounded border text-sm">
+                        <button onclick="updateFinanceInfo()" class="bg-purple-600 text-white px-4 py-2 rounded w-full text-sm">Simpan Maklumat</button>
+                    </div>
+                    <div class="bg-white/60 p-4 rounded-xl">
+                        <h4 class="font-bold text-sm mb-2">Status Income</h4>
+                        <div class="flex justify-between text-sm mb-2"><span>Total Sales:</span> <span class="font-bold" id="fin-total-sales">RM 0.00</span></div>
+                        <div class="flex justify-between text-sm mb-2 text-red-600"><span>MFD Commission Deducted:</span> <span class="font-bold" id="fin-commission">- RM 0.00</span></div>
+                        <div class="flex justify-between text-lg font-bold text-green-600 border-t pt-2"><span>Net Income:</span> <span id="fin-net">RM 0.00</span></div>
+                        <div class="mt-4">
+                            <label class="text-xs font-bold">Status Pembayaran:</label>
+                            <select id="fin-status" class="w-full p-2 rounded border text-sm bg-white">
+                                <option value="Not yet paid">⚪ Not yet paid</option>
+                                <option value="Process 5 working days">🟡 Process (5 working days)</option>
+                                <option value="Already paid">🟢 Already paid</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <h4 class="font-bold text-sm mb-2">📜 Transaction History</h4>
+                <div class="table-container">
+                    <table class="custom-table">
+                        <thead><tr><th>Tarikh</th><th>Order ID</th><th>Gross</th><th>Commission</th><th>Net</th><th>Status</th></tr></thead>
+                        <tbody id="fin-history-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: PROFILE -->
+            <div id="tab-profile" class="hidden-section glass-panel p-6 mb-6">
+                <h3 class="font-bold text-purple-700 mb-4">👤 Profil Kedai & Penjual</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold">Seller Name</label>
+                        <input type="text" id="prof-name" class="w-full p-2 rounded border text-sm">
+                        <label class="text-xs font-bold">Business Name</label>
+                        <input type="text" id="prof-business" class="w-full p-2 rounded border text-sm">
+                        <label class="text-xs font-bold">Deskripsi Business</label>
+                        <textarea id="prof-desc" class="w-full p-2 rounded border text-sm" rows="3"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold">Phone Number</label>
+                        <input type="tel" id="prof-phone" class="w-full p-2 rounded border text-sm">
+                        <label class="text-xs font-bold">Email Address</label>
+                        <input type="email" id="prof-email" class="w-full p-2 rounded border text-sm">
+                        <label class="text-xs font-bold">Shop Address</label>
+                        <textarea id="prof-addr" class="w-full p-2 rounded border text-sm" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button onclick="updateProfile()" class="bg-purple-600 text-white px-6 py-2 rounded-lg">Simpan Profil</button>                    <button onclick="deleteAccount()" class="bg-red-100 text-red-600 px-6 py-2 rounded-lg border border-red-200">Padam Akaun Kekal</button>
+                </div>
+            </div>
+
+            <!-- TAB: ADMIN (Vendor Admin Only) -->
+            <div id="tab-admin" class="hidden-section glass-panel p-6 mb-6">
+                <h3 class="font-bold text-red-700 mb-4">👑 Admin Panel (Urus Vendor Lain)</h3>
+                <div class="mb-4 p-3 bg-red-50 rounded border border-red-200 text-xs text-red-700">
+                    <i class="fas fa-info-circle"></i> Tetapkan kadar komisen MFD Store (0.01 - 5.00 RM setiap jualan).
+                </div>
+                <div class="flex gap-2 mb-4 items-center">
+                    <label class="font-bold text-sm">Kadar Komisen (RM):</label>
+                    <input type="number" id="admin-comm-rate" step="0.01" min="0.01" max="5.00" class="w-24 p-2 rounded border">
+                    <button onclick="updateCommissionRate()" class="bg-red-500 text-white px-4 py-2 rounded text-sm">Update Rate</button>
+                </div>
+                
+                <h4 class="font-bold text-sm mb-2">Database Vendor</h4>
+                <div class="table-container">
+                    <table class="custom-table">
+                        <thead><tr><th>VENFD ID</th><th>Business</th><th>Sales</th><th>Commission</th><th>Income Status</th><th>Tindakan</th></tr></thead>
+                        <tbody id="admin-vendor-list"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 3. CHAT -->
+        <section id="view-chat" class="hidden-section">
+            <div class="glass-panel p-4 h-[70vh] flex flex-col">
+                <h3 class="font-bold glitter-text mb-4"><i class="fas fa-headset"></i> Live Agent (Vendor)</h3>
+                <div id="chat-list" class="flex-1 overflow-y-auto space-y-2 mb-4 border rounded-lg p-2 bg-white/40"></div>
+                <div id="chat-window" class="hidden-section flex-1 flex flex-col">
+                    <div class="flex justify-between items-center border-b pb-2 mb-2">
+                        <span id="chat-partner" class="font-bold"></span>
+                        <button onclick="closeChat()" class="text-xs text-red-500">Tutup</button>
+                    </div>
+                    <div id="chat-messages" class="chat-box flex-1 mb-2"></div>
+                    <div class="flex gap-2">
+                        <button onclick="document.getElementById('chat-file').click()" class="p-2 bg-gray-200 rounded"><i class="fas fa-image"></i></button>
+                        <input type="file" id="chat-file" class="hidden" accept="image/*" onchange="sendChatImage(this)">
+                        <textarea id="chat-input" rows="1" class="flex-1 p-2 rounded border text-sm" placeholder="Taip mesej..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+                        <button onclick="sendMsg()" class="btn-glitter px-4 rounded">Hantar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    <!-- FIREBASE LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, getDoc, query, where, orderBy, serverTimestamp, deleteDoc, onSnapshot, limit } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyDMrexlgTwauuqmZ2kZECwqqEYmwtj7Zrs",
+            authDomain: "mfd-store.firebaseapp.com",
+            projectId: "mfd-store",
+            storageBucket: "mfd-store.appspot.com",
+            messagingSenderId: "1039564529069",
+            appId: "1:1039564529069:web:bc7c752f3618e6cb879524"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let vendorData = {};
+        let products = [];
+        let orders = [];
+        let chatSub = null;
+        let globalCommissionRate = 1.00; // Default RM 1.00
+
+        // --- UTILS ---
+        const fmtRM = n => 'RM ' + parseFloat(n||0).toFixed(2);
+        const genVENFD = () => "VENFD-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+        const genUC = (vid) => `ITEM-${vid}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        
+        function toast(msg, type='success') {
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'} mr-2"></i>${msg}`;
+            document.getElementById('toast-container').appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+            document.getElementById(type==='success'?'snd-success':'snd-error').play().catch(()=>{});
+        }
+        window.playSound = () => document.getElementById('snd-click').play().catch(()=>{});
+
+        // --- NAV ---
+        window.navTo = (view) => {
+            playSound();
+            document.querySelectorAll('section').forEach(el => el.classList.add('hidden-section'));
+            document.getElementById(`view-${view}`).classList.remove('hidden-section');
+            if(view === 'dashboard' && currentUser) loadVendorDashboard();
+            if(view === 'chat' && currentUser) loadChatList();
+        };
+        window.showTab = (id) => {
+            ['tab-products', 'tab-orders', 'tab-finance', 'tab-profile', 'tab-admin'].forEach(t => document.getElementById(t).classList.add('hidden-section'));
+            document.getElementById(id).classList.remove('hidden-section');
+        };
+
+        // --- AUTH ---
+        window.doRegister = async () => {
+            const name = document.getElementById('reg-name').value.trim();
+            const business = document.getElementById('reg-business').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pass = document.getElementById('reg-pass').value;
+
+            if(!name || !business || !phone || pass.length < 6) return toast('Isi semua field & password min 6', 'error');
+
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                const uid = cred.user.uid;
+                const venId = genVENFD();
+                const uac = "MFD-" + Math.random().toString(36).substr(2, 8).toUpperCase();
+
+                await setDoc(doc(db, "users", uid), {
+                    uid, username: name, role: 'vendor', status: 'ACTIVE',
+                    venId, uac, businessName: business, phone, email,
+                    createdAt: serverTimestamp(),
+                    // Finance defaults
+                    totalSales: 0, totalCommission: 0, netIncome: 0,
+                    paymentInfo: { holder: '', bank: '', acc: '', qr: '' },
+                    incomeStatus: 'Not yet paid'
+                });
+
+                toast('✅ Pendaftaran Vendor Berjaya!');
+                navTo('login');
+            } catch(e) { toast('❌ ' + e.message, 'error'); }
+        };
+
+        window.doLogin = async () => {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-pass').value;
+            if(!email || !pass) return toast('Isi email & password', 'error');
+            try { await signInWithEmailAndPassword(auth, email, pass); toast('✅ Login Berjaya'); } 
+            catch(e) { toast('❌ ' + e.message, 'error'); }
+        };
+
+        window.doGoogleSignIn = async () => {
+            const provider = new GoogleAuthProvider();
+            try {
+                const res = await signInWithPopup(auth, provider);
+                const uid = res.user.uid;                const userDoc = await getDoc(doc(db, "users", uid));
+                if(!userDoc.exists()) {
+                    // Create vendor doc for new google user
+                    const venId = genVENFD();
+                    await setDoc(doc(db, "users", uid), {
+                        uid, username: res.user.displayName, role: 'vendor', status: 'ACTIVE',
+                        venId, uac: "MFD-G"+Math.random().toString(36).substr(2,6).toUpperCase(),
+                        businessName: res.user.displayName + "'s Shop",
+                        email: res.user.email, phone: '',
+                        createdAt: serverTimestamp(), totalSales: 0, totalCommission: 0, netIncome: 0,
+                        paymentInfo: { holder: '', bank: '', acc: '', qr: '' }, incomeStatus: 'Not yet paid'
+                    });
+                    toast('✅ Akaun Google Vendor Dicipta');
+                } else {
+                    toast('✅ Login Google Berjaya');
+                }
+            } catch(e) { toast('❌ ' + e.message, 'error'); }
+        };
+
+        window.logout = () => { signOut(auth); toast('✅ Logout'); navTo('login'); };
+        window.deleteAccount = async () => {
+            if(!confirm('Padam akaun vendor kekal?')) return;
+            await updateDoc(doc(db, "users", currentUser.uid), { status: 'INACTIVE', deletedAt: serverTimestamp() });
+            signOut(auth); toast('✅ Akaun dinyahaktif'); navTo('login');
+        };
+
+        // --- DASHBOARD LOGIC ---
+        async function loadVendorDashboard() {
+  if (!currentUser) return;
+  
+  // SHOW LOADING STATE
+  toast('🔄 Loading vendor data...', 'info');
+  
+  // 1. Load Vendor Profile FIRST (wait for it)
+  const vendorDoc = await getDoc(doc(db, "users", currentUser.uid));
+  if (vendorDoc.exists()) {
+    vendorData = vendorDoc.data();
+    console.log('Vendor data loaded:', vendorData.venId); // Debug
+  } else {
+    toast('❌ Vendor data tidak dijumpai', 'error');
+    return;
+  }
+  
+  // 2. THEN setup real-time listeners
+  onSnapshot(doc(db, "users", currentUser.uid), (doc) => {
+    if (doc.exists()) {
+      vendorData = doc.data();
+      // ... update UI code ...
+    }
+  });
+            // Listen to Vendor Profile
+            onSnapshot(doc(db, "users", currentUser.uid), (doc) => {
+                if(doc.exists()) {
+                    vendorData = doc.data();
+                    // Update UI Nav
+                    document.getElementById('nav-username').innerText = vendorData.businessName || vendorData.username;
+                    document.getElementById('nav-venid').innerText = vendorData.venId;
+                    
+                    // Update Stats
+                    document.getElementById('stat-sales').innerText = fmtRM(vendorData.totalSales);
+                    document.getElementById('stat-income').innerText = fmtRM(vendorData.netIncome);
+                    
+                    // Update Profile Form
+                    document.getElementById('prof-name').value = vendorData.username;
+                    document.getElementById('prof-business').value = vendorData.businessName;
+                    document.getElementById('prof-phone').value = vendorData.phone;
+                    document.getElementById('prof-email').value = vendorData.email;
+                    document.getElementById('prof-addr').value = vendorData.address || '';
+                    
+                    // Update Finance Form                    const p = vendorData.paymentInfo || {};
+                    document.getElementById('fin-holder').value = p.holder || '';
+                    document.getElementById('fin-bank').value = p.bank || '';
+                    document.getElementById('fin-acc').value = p.acc || '';
+                    document.getElementById('fin-qr').value = p.qr || '';
+                    document.getElementById('fin-status').value = vendorData.incomeStatus || 'Not yet paid';
+                    document.getElementById('fin-total-sales').innerText = fmtRM(vendorData.totalSales);
+                    document.getElementById('fin-commission').innerText = '- ' + fmtRM(vendorData.totalCommission);
+                    document.getElementById('fin-net').innerText = fmtRM(vendorData.netIncome);
+
+                    if(vendorData.role === 'admin') document.getElementById('btn-admin').classList.remove('hidden');
+                }
+            });
+
+            // Listen to Products
+            const pQuery = query(collection(db, "products"), where("vendorId", "==", vendorData.venId), orderBy("createdAt", "desc"));
+            onSnapshot(pQuery, (snap) => {
+                products = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                document.getElementById('stat-products').innerText = products.filter(p=>p.status==='Public').length;
+                renderProducts();
+            });
+
+            // Listen to Orders (Filter by vendorId in items array)
+            // Note: Firestore doesn't support array-contains well with other filters in simple queries without indexes. 
+            // We fetch recent orders and filter client-side for simplicity in this single-file setup.
+            const oQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(200));
+            onSnapshot(oQuery, (snap) => {
+                let allOrders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                // Filter orders that contain items from THIS vendor
+                orders = allOrders.filter(o => o.items && o.items.some(i => i.vendorId === vendorData.venId));
+                
+                const pending = orders.filter(o => o.status === 'To Pay' || o.status === 'To Ship').length;
+                document.getElementById('stat-pending').innerText = pending;
+                
+                renderOrders();
+                renderFinanceHistory();
+            });
+
+            // Load Admin Data if Admin
+            if(vendorData.role === 'admin') {
+                loadAdminVendors();
+                // Get global commission rate from a config doc or default
+                getDoc(doc(db, "config", "settings")).then(d => {
+                    if(d.exists()) {
+                        globalCommissionRate = d.data().commissionRate || 1.00;
+                        document.getElementById('admin-comm-rate').value = globalCommissionRate;
+                    }
+                });
+            }
+        }
+        // --- PRODUCTS ---
+        window.handleImageUpload = (input) => {
+            const file = input.files[0];
+            if(!file) return;
+            if(file.size > 500000) return toast('❌ Gambar terlalu besar (Max 500KB untuk Firestore)', 'error');
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('prod-preview').src = e.target.result;
+                document.getElementById('prod-preview').classList.remove('hidden');
+                window.tempImgBase64 = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+// GANTI fungsi addProduct() dengan kod ini:
+
+window.addProduct = async () => {
+  // 1. VALIDATE - Pastikan vendor data dah load
+  if (!vendorData || !vendorData.venId) {
+    toast('❌ Sila tunggu data vendor dimuatkan...', 'error');
+    // Force reload vendor data
+    await loadVendorDashboard();
+    return;
+  }
+  
+  const name = document.getElementById('prod-name').value.trim();
+  const price = parseFloat(document.getElementById('prod-price').value);
+  const imgUrl = document.getElementById('prod-img-url').value.trim() || window.tempImgBase64;
+  
+  if (!name || !price || !imgUrl) return toast('Nama, Harga & Gambar wajib', 'error');
+  
+  // 2. GENERATE UNIQUE CODE dengan vendorId yang sah
+  // Pastikan function ini handle undefined
+const genUC = (vid) => {
+  if (!vid) {
+    console.error('genUC called with undefined vendorId!');
+    return `ITEM-UNKNOWN-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+  }
+  return `ITEM-${vid}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+};
+  const uniqueCode = genUC(vendorData.venId);
+  
+  console.log('Adding product with vendorId:', vendorData.venId); // Debug log
+  
+  try {
+    await addDoc(collection(db, "products"), {
+      name,
+      priceSell: price,
+      imageUrl: imgUrl,
+      description: document.getElementById('prod-desc').value,
+      variation: document.getElementById('prod-variation').value,
+      country: document.getElementById('prod-country').value,
+      status: document.getElementById('prod-status').value,
+      uniqueCode,
+      vendorId: vendorData.venId, // ✅ Pastikan ini ada value
+      vendorName: vendorData.businessName || vendorData.username,
+      totalSold: 0,
+      rating: 5.0,
+      createdAt: serverTimestamp()
+    });
+    toast('✅ Produk dilancarkan');
+    // Reset form
+    document.getElementById('prod-name').value = '';
+    document.getElementById('prod-price').value = '';
+    document.getElementById('prod-img-url').value = '';
+    document.getElementById('prod-preview').classList.add('hidden');
+    window.tempImgBase64 = null;
+  } catch (e) {
+    console.error('Add product error:', e);
+    toast('❌ ' + e.message, 'error');
+  }
+};
+        // Auto gen UC
+        document.getElementById('prod-name').addEventListener('input', function() {
+            if(vendorData.venId) document.getElementById('prod-uc').value = genUC(vendorData.venId);
+        });
+
+        function renderProducts() {            const tbody = document.getElementById('vendor-prod-list');
+            tbody.innerHTML = products.map(p => `
+                <tr>
+                    <td><img src="${p.imageUrl}" class="w-10 h-10 rounded object-cover border"></td>
+                    <td class="font-bold text-xs">${p.name}</td>
+                    <td><span class="unique-code text-[10px]">${p.uniqueCode}</span></td>
+                    <td class="font-bold">${fmtRM(p.priceSell)}</td>
+                    <td class="text-center"><span class="badge ${p.status==='Public'?'badge-active':'badge-blocked'}">${p.status}</span></td>
+                    <td class="text-center">${p.totalSold||0}</td>
+                    <td class="text-green-600 font-bold">${fmtRM((p.priceSell)* (p.totalSold||0))}</td>
+                    <td class="text-center"><button onclick="deleteProduct('${p.id}')" class="text-red-500 text-xs">Padam</button></td>
+                </tr>
+            `).join('');
+        }
+        window.deleteProduct = async (id) => { if(confirm('Padam?')) { await deleteDoc(doc(db,"products",id)); toast('Dipadam'); }};
+
+        // --- ORDERS ---
+        function renderOrders() {
+            const tbody = document.getElementById('vendor-order-list');
+            // Filter items to show only this vendor's items in the order
+            const myOrders = orders.map(o => {
+                const myItems = o.items.filter(i => i.vendorId === vendorData.venId);
+                if(myItems.length === 0) return null;
+                return { ...o, myItems };
+            }).filter(o => o !== null);
+
+            tbody.innerHTML = myOrders.map(o => {
+                const item = o.myItems[0]; // Show first item for summary
+                let actions = '';
+                if(o.status === 'To Pay') {
+                    actions = `<button onclick="updateOrderStatus('${o.id}', 'To Ship')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Confirm Pay</button>`;
+                } else if (o.status === 'To Ship') {
+                    actions = `<button onclick="updateOrderStatus('${o.id}', 'Completed')" class="bg-green-500 text-white px-2 py-1 rounded text-xs">Ship</button>`;
+                }
+                
+                return `<tr>
+                    <td class="font-mono text-[10px]">${o.uac}</td>
+                    <td class="text-xs font-bold">${o.username}</td>
+                    <td class="text-xs">${item.name}</td>
+                    <td><span class="unique-code text-[10px]">${item.uniqueCode}</span></td>
+                    <td class="font-bold">${fmtRM(o.total)}</td>
+                    <td class="text-center"><span class="badge ${o.paymentStatus==='Verified'?'badge-paid':'badge-pending'}">${o.paymentStatus}</span></td>
+                    <td class="text-center"><span class="badge badge-active">${o.status}</span></td>
+                    <td><input type="text" value="${o.trackingNo||''}" onchange="updateOrderField('${o.id}','trackingNo',this.value)" class="w-20 text-xs border rounded p-1" placeholder="Tracking"></td>
+                    <td>${actions}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        window.updateOrderStatus = async (id, status) => {            await updateDoc(doc(db,"orders",id), { status, paymentStatus: 'Verified', updatedAt: serverTimestamp() });
+            
+            // If Completed, Update Vendor Finance
+            if(status === 'Completed') {
+                const orderSnap = await getDoc(doc(db, "orders", id));
+                const order = orderSnap.data();
+                if(!order.processedFinance) {
+                    // Calculate Commission
+                    const vendorItemsTotal = order.items.filter(i=>i.vendorId===vendorData.venId).reduce((sum, i) => sum + (i.price * i.qty), 0);
+                    const commission = vendorItemsTotal * (globalCommissionRate / 100); // Assuming rate is percentage or fixed? Prompt says 0.01 to 5 ringgit. Let's assume Fixed RM.
+                    // Actually prompt says "0.01 hingga 5 ringgit". So it's a fixed fee per sale or percentage? 
+                    // Let's assume Fixed Fee per transaction for simplicity based on "setiap jualan".
+                    const fixedComm = parseFloat(globalCommissionRate); 
+                    
+                    const net = vendorItemsTotal - fixedComm;
+
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        totalSales: (vendorData.totalSales || 0) + vendorItemsTotal,
+                        totalCommission: (vendorData.totalCommission || 0) + fixedComm,
+                        netIncome: (vendorData.netIncome || 0) + net
+                    });
+                    
+                    await updateDoc(doc(db, "orders", id), { processedFinance: true });
+                    toast('✅ Order Completed & Finance Updated');
+                }
+            } else {
+                toast('✅ Status Updated');
+            }
+        };
+
+        window.updateOrderField = async (id, field, val) => {
+            await updateDoc(doc(db,"orders",id), {[field]: val});
+        };
+
+        // --- FINANCE ---
+        window.updateFinanceInfo = async () => {
+            const info = {
+                holder: document.getElementById('fin-holder').value,
+                bank: document.getElementById('fin-bank').value,
+                acc: document.getElementById('fin-acc').value,
+                qr: document.getElementById('fin-qr').value
+            };
+            const status = document.getElementById('fin-status').value;
+            await updateDoc(doc(db, "users", currentUser.uid), { paymentInfo: info, incomeStatus: status });
+            toast('✅ Maklumat Kewangan Dikemaskini');
+        };
+
+        function renderFinanceHistory() {
+            // Show last 10 completed orders as history
+            const history = orders.filter(o => o.status === 'Completed' && o.processedFinance).slice(0, 10);            const tbody = document.getElementById('fin-history-list');
+            tbody.innerHTML = history.map(o => {
+                const vTotal = o.items.filter(i=>i.vendorId===vendorData.venId).reduce((s,i)=>s+(i.price*i.qty),0);
+                const comm = parseFloat(globalCommissionRate);
+                return `<tr>
+                    <td class="text-xs">${o.createdAt ? new Date(o.createdAt.toDate()).toLocaleDateString() : '-'}</td>
+                    <td class="font-mono text-[10px]">${o.orderId}</td>
+                    <td>${fmtRM(vTotal)}</td>
+                    <td class="text-red-500">-${fmtRM(comm)}</td>
+                    <td class="text-green-600 font-bold">${fmtRM(vTotal-comm)}</td>
+                    <td><span class="badge badge-paid">Paid to Balance</span></td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- ADMIN ---
+        async function loadAdminVendors() {
+            const q = query(collection(db, "users"), where("role", "==", "vendor"));
+            onSnapshot(q, (snap) => {
+                const vendors = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                const tbody = document.getElementById('admin-vendor-list');
+                tbody.innerHTML = vendors.map(v => `
+                    <tr>
+                        <td class="font-mono text-[10px]">${v.venId}</td>
+                        <td class="font-bold text-xs">${v.businessName}</td>
+                        <td>${fmtRM(v.totalSales)}</td>
+                        <td class="text-red-500">-${fmtRM(v.totalCommission)}</td>
+                        <td><span class="badge ${v.incomeStatus==='Already paid'?'badge-paid':'badge-pending'}">${v.incomeStatus}</span></td>
+                        <td><button onclick="messageVendor('${v.uid}')" class="text-blue-500 text-xs">Message</button></td>
+                    </tr>
+                `).join('');
+            });
+        }
+
+        window.updateCommissionRate = async () => {
+            const rate = document.getElementById('admin-comm-rate').value;
+            await setDoc(doc(db, "config", "settings"), { commissionRate: parseFloat(rate) }, {merge:true});
+            globalCommissionRate = parseFloat(rate);
+            toast('✅ Kadar Komisen Dikemaskini');
+        };
+
+        // --- PROFILE ---
+        window.updateProfile = async () => {
+            const data = {
+                username: document.getElementById('prof-name').value,
+                businessName: document.getElementById('prof-business').value,
+                phone: document.getElementById('prof-phone').value,
+                email: document.getElementById('prof-email').value,
+                address: document.getElementById('prof-addr').value
+            };            await updateDoc(doc(db, "users", currentUser.uid), data);
+            toast('✅ Profil Dikemaskini');
+        };
+
+        // --- CHAT ---
+        async function loadChatList() {
+            const list = document.getElementById('chat-list');
+            list.innerHTML = '<div class="text-center py-4">Loading...</div>';
+            const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
+            if(chatSub) chatSub();
+            chatSub = onSnapshot(q, (snap) => {
+                list.innerHTML = '';
+                if(snap.empty) { list.innerHTML = '<p class="text-center text-gray-500">Tiada perbualan</p>'; return; }
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const partnerId = data.participants.find(id => id !== currentUser.uid);
+                    getDoc(doc(db, "users", partnerId)).then(pSnap => {
+                        if(pSnap.exists()) {
+                            const p = pSnap.data();
+                            list.innerHTML += `<div onclick="openChat('${partnerId}', '${p.username}')" class="p-3 bg-white/60 hover:bg-white rounded-lg cursor-pointer flex justify-between items-center">
+                                <div class="flex items-center gap-3"><div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold">${p.username[0]}</div>
+                                <div><h4 class="font-bold text-sm">${p.username}</h4><p class="text-xs text-gray-500 truncate w-40">${data.lastMessage||''}</p></div></div>
+                            </div>`;
+                        }
+                    });
+                });
+            });
+        }
+
+        window.openChat = (partnerId, partnerName) => {
+            document.getElementById('chat-list').classList.add('hidden-section');
+            document.getElementById('chat-window').classList.remove('hidden-section');
+            document.getElementById('chat-partner').innerText = partnerName;
+            const chatId = [currentUser.uid, partnerId].sort().join('_');
+            const msgBox = document.getElementById('chat-messages');
+            const q = query(collection(db, `chats/${chatId}/messages`), orderBy("timestamp", "asc"));
+            onSnapshot(q, (snap) => {
+                msgBox.innerHTML = '';
+                snap.forEach(d => {
+                    const m = d.data();
+                    const isMe = m.senderId === currentUser.uid;
+                    let content = m.text ? `<p>${m.text}</p>` : (m.imageUrl ? `<img src="${m.imageUrl}" class="max-w-full rounded">` : '');
+                    msgBox.innerHTML += `<div class="msg-bubble ${isMe?'msg-me':'msg-other'}">${content}<div class="text-[9px] opacity-70 text-right mt-1">${m.timestamp?new Date(m.timestamp.toDate()).toLocaleTimeString():''}</div></div>`;
+                });
+                msgBox.scrollTop = msgBox.scrollHeight;
+            });
+            window.currentChatId = chatId;
+            window.currentPartnerId = partnerId;
+        };
+        window.closeChat = () => {
+            document.getElementById('chat-window').classList.add('hidden-section');
+            document.getElementById('chat-list').classList.remove('hidden-section');
+        };
+
+        window.sendMsg = async () => {
+            const input = document.getElementById('chat-input');
+            const txt = input.value.trim();
+            if(!txt || !window.currentChatId) return;
+            await addDoc(collection(db, `chats/${window.currentChatId}/messages`), { senderId: currentUser.uid, text: txt, timestamp: serverTimestamp() });
+            await setDoc(doc(db, "chats", window.currentChatId), { participants: [currentUser.uid, window.currentPartnerId], lastMessage: txt, lastTime: serverTimestamp() }, {merge:true});
+            input.value = '';
+            document.getElementById('snd-msg').play().catch(()=>{});
+        };
+
+        window.sendChatImage = async (input) => {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64 = e.target.result;
+                await addDoc(collection(db, `chats/${window.currentChatId}/messages`), { senderId: currentUser.uid, imageUrl: base64, timestamp: serverTimestamp() });
+                await setDoc(doc(db, "chats", window.currentChatId), { participants: [currentUser.uid, window.currentPartnerId], lastMessage: '[Image]', lastTime: serverTimestamp() }, {merge:true});
+                toast('✅ Gambar dihantar');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.messageVendor = (uid) => {
+            // Open chat with vendor
+            openChat(uid, 'Vendor');
+            navTo('chat');
+        };
+
+        // --- INIT ---
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if(user) {
+                document.getElementById('auth-nav').classList.add('hidden-section');
+                document.getElementById('user-nav').classList.remove('hidden-section');
+                navTo('dashboard');
+            } else {
+                document.getElementById('auth-nav').classList.remove('hidden-section');
+                document.getElementById('user-nav').classList.add('hidden-section');
+                navTo('login');
+            }
+        });
+    </script>
+</body>
+</html>
